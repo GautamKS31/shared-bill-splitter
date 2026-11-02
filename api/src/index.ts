@@ -1,10 +1,21 @@
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import balanceRoutes from './routes/balances'
 import billRoutes from './routes/bills'
 import homeRoutes from './routes/homes'
 import paymentRoutes from './routes/payments'
 
 const app = new Hono<{ Bindings: Env }>()
+
+// Allow requests from the React frontend
+app.use(
+  '/api/*',
+  cors({
+    origin: 'http://localhost:5173',
+    allowMethods: ['GET', 'POST', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Idempotency-Key'],
+  }),
+)
 
 // Health check
 app.get('/api/health', (c) => {

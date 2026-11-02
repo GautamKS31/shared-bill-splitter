@@ -116,5 +116,69 @@ bills.post('/api/homes/:homeId/bills', async (c) => {
   )
 })
 
+// ==========================================
+// GET /api/homes/:homeId/bills
+// Retrieve all bills and their shares
+// ==========================================
+
+bills.get('/api/homes/:homeId/bills', async (c) => {
+  const homeId = c.req.param('homeId')
+
+  const home = await c.env.DB.prepare('SELECT id FROM homes WHERE id = ?')
+    .bind(homeId)
+    .first<{ id: string }>()
+
+  if (!home) {
+    return c.json({ error: 'Home not found' }, 404)
+  }
+
+  const billResult = await c.env.DB.prepare(
+    `SELECT id, home_id, title, total_cents
+     FROM bills
+     WHERE home_id = ?
+     ORDER BY rowid DESC`,
+  )
+    .bind(homeId)
+    .all<{
+      id: string
+      home_id: string
+      title: string
+      total_cents: number
+    }>()
+
+  const billsWithShares = await Promise.all(
+    billResult.results.map(async (bill) => {
+      const shareResult = await c.env.DB.prepare(
+        `SELECT id, member_id, amount_cents, paid_at
+         FROM shares
+         WHERE bill_id = ?
+         ORDER BY rowid ASC`,
+      )
+        .bind(bill.id)
+        .all<{
+          id: string
+          member_id: string
+          amount_cents: number
+          paid_at: string | null
+        }>()
+
+      return {
+        id: bill.id,
+        homeId: bill.home_id,
+        title: bill.title,
+        totalCents: bill.total_cents,
+        shares: shareResult.results.map((share) => ({
+          id: share.id,
+          memberId: share.member_id,
+          amountCents: share.amount_cents,
+          paidAt: share.paid_at,
+        })),
+      }
+    }),
+  )
+
+  return c.json({ bills: billsWithShares }, 200)
+})
+
 // Export the bills routes
 export default bills

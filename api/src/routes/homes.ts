@@ -69,4 +69,51 @@ homes.post('/api/homes/:homeId/members', async (c) => {
   return c.json({ id, homeId, name }, 201)
 })
 
+// ==========================================
+// GET /api/homes/:homeId
+// Retrieve a home
+// ==========================================
+
+homes.get('/api/homes/:homeId', async (c) => {
+  const homeId = c.req.param('homeId')
+
+  const home = await c.env.DB.prepare('SELECT id, name FROM homes WHERE id = ?')
+    .bind(homeId)
+    .first<{ id: string; name: string }>()
+
+  if (!home) {
+    return c.json({ error: 'Home not found' }, 404)
+  }
+
+  return c.json(home, 200)
+})
+
+// ==========================================
+// GET /api/homes/:homeId/members
+// Retrieve all members in joining order
+// ==========================================
+
+homes.get('/api/homes/:homeId/members', async (c) => {
+  const homeId = c.req.param('homeId')
+
+  const home = await c.env.DB.prepare('SELECT id FROM homes WHERE id = ?')
+    .bind(homeId)
+    .first<{ id: string }>()
+
+  if (!home) {
+    return c.json({ error: 'Home not found' }, 404)
+  }
+
+  const result = await c.env.DB.prepare(
+    `SELECT id, home_id AS homeId, name
+     FROM members
+     WHERE home_id = ?
+     ORDER BY position ASC`,
+  )
+    .bind(homeId)
+    .all<{ id: string; homeId: string; name: string }>()
+
+  return c.json({ members: result.results }, 200)
+})
+
 export default homes
