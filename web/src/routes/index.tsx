@@ -1,5 +1,6 @@
+
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   addMember,
   type Balance,
@@ -7,10 +8,15 @@ import {
   createBill,
   createHome,
   getBalances,
+  getBills,
+  getHome,
+  getMembers,
   type Home as HomeType,
   type Member,
   payShare,
 } from '../api/billApi'
+
+const STORAGE_KEY = 'shared-bill-splitter-home-id'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -28,8 +34,50 @@ function Home() {
   const [billAmount, setBillAmount] = useState('')
 
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+
+  // Load saved home and its data when the page opens.
+  useEffect(() => {
+    const loadSavedHome = async () => {
+      const savedHomeId = localStorage.getItem(STORAGE_KEY)
+
+      if (!savedHomeId) {
+        setInitialLoading(false)
+        return
+      }
+
+      try {
+        setError('')
+
+        const homeResult = await getHome(savedHomeId)
+        const [membersResult, billsResult, balancesResult] = await Promise.all([
+          getMembers(savedHomeId),
+          getBills(savedHomeId),
+          getBalances(savedHomeId),
+        ])
+
+        setHome(homeResult)
+        setMembers(membersResult.members)
+        setBills(billsResult.bills)
+        setBalances(balancesResult.balances)
+      } catch (err) {
+        if (typeof err === 'object' && err !== null && 'response' in err) {
+          const response = err.response as {
+            data?: { error?: string }
+          }
+          setError(response.data?.error || 'Unable to load your saved home.')
+        } else {
+          setError('Unable to connect to the server. Please try again.')
+        }
+      } finally {
+        setInitialLoading(false)
+      }
+    }
+
+    void loadSavedHome()
+  }, [])
 
   const formatMoney = (cents: number) =>
     new Intl.NumberFormat('en-IN', {
@@ -61,7 +109,13 @@ function Home() {
 
     try {
       const result = await createHome(homeName)
+
       setHome(result)
+      localStorage.setItem(STORAGE_KEY, result.id)
+
+      setMembers([])
+      setBills([])
+      setBalances([])
       setHomeName('')
       setMessage('Home created successfully!')
     } catch (err) {
@@ -128,7 +182,7 @@ function Home() {
     setMessage('')
 
     try {
-      await payShare(bill.id, shareId)
+      const result = await payShare(bill.id, shareId)
 
       setBills((previous) =>
         previous.map((item) =>
@@ -136,7 +190,9 @@ function Home() {
             ? {
                 ...item,
                 shares: item.shares.map((share) =>
-                  share.id === shareId ? { ...share, paidAt: new Date().toISOString() } : share,
+                  share.id === shareId
+                    ? { ...share, paidAt: result.paidAt }
+                    : share,
                 ),
               }
             : item,
@@ -146,10 +202,21 @@ function Home() {
       if (home) await refreshBalances(home.id)
       setMessage('Payment successful!')
     } catch (err) {
+      // Keep the share unpaid if the payment request fails.
       handleError(err)
     } finally {
       setLoading(false)
     }
+  }
+
+  if (initialLoading) {
+    return (
+      <main className="dashboard">
+        <section className="panel">
+          <p>Loading your saved household...</p>
+        </section>
+      </main>
+    )
   }
 
   return (
@@ -254,7 +321,9 @@ function Home() {
                   Create and Split Bill
                 </button>
               </form>
-              {members.length === 0 && <p className="empty">Add members before creating a bill.</p>}
+              {members.length === 0 && (
+                <p className="empty">Add members before creating a bill.</p>
+              )}
             </div>
           </section>
 

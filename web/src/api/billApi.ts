@@ -1,7 +1,8 @@
 import axios from 'axios'
 
+// API configuration
 const api = axios.create({
-  baseURL: 'http://localhost:8787',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8787',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -47,25 +48,48 @@ export const createHome = async (name: string): Promise<Home> => {
   return response.data
 }
 
-// Add a member
-export const addMember = async (homeId: string, name: string): Promise<Member> => {
-  const response = await api.post<Member>(`/api/homes/${homeId}/members`, { name })
+// Get an existing home
+export const getHome = async (homeId: string): Promise<Home> => {
+  const response = await api.get<Home>(`/api/homes/${homeId}`)
   return response.data
 }
 
-// Create a bill
+// Add a member
+export const addMember = async (homeId: string, name: string): Promise<Member> => {
+  const response = await api.post<Member>(`/api/homes/${homeId}/members`, {
+    name,
+  })
+  return response.data
+}
+
+// Get all members of a home
+export const getMembers = async (homeId: string): Promise<{ members: Member[] }> => {
+  const response = await api.get<{ members: Member[] }>(`/api/homes/${homeId}/members`)
+  return response.data
+}
+
+// Create a bill and split it
 export const createBill = async (
   homeId: string,
   title: string,
   totalCents: number,
 ): Promise<Bill> => {
-  const response = await api.post<Bill>(`/api/homes/${homeId}/bills`, { title, totalCents })
+  const response = await api.post<Bill>(`/api/homes/${homeId}/bills`, {
+    title,
+    totalCents,
+  })
+  return response.data
+}
+
+// Get all bills and their shares
+export const getBills = async (homeId: string): Promise<{ bills: Bill[] }> => {
+  const response = await api.get<{ bills: Bill[] }>(`/api/homes/${homeId}/bills`)
   return response.data
 }
 
 // Pay a share
 export const payShare = async (billId: string, shareId: string) => {
-  const response = await api.post(
+  const response = await api.post<Share>(
     `/api/bills/${billId}/shares/${shareId}/pay`,
     {},
     {
@@ -74,10 +98,11 @@ export const payShare = async (billId: string, shareId: string) => {
       },
     },
   )
+
   return response.data
 }
 
-// Get balances
+// Get outstanding balances
 export const getBalances = async (homeId: string): Promise<{ balances: Balance[] }> => {
   const response = await api.get<{ balances: Balance[] }>(`/api/homes/${homeId}/balances`)
   return response.data

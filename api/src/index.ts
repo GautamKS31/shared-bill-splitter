@@ -9,13 +9,21 @@ const app = new Hono<{ Bindings: Env }>()
 
 // Allow requests from the React frontend
 app.use(
-  '/api/*',
+  "*",
   cors({
-    origin: 'http://localhost:5173',
-    allowMethods: ['GET', 'POST', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Idempotency-Key'],
+    origin: (origin) => {
+      if (!origin) return null;
+
+      const isLocalDevelopment =
+        /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+        /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin);
+
+      return isLocalDevelopment ? origin : null;
+    },
+    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Idempotency-Key"],
   }),
-)
+);
 
 // Health check
 app.get('/api/health', (c) => {
