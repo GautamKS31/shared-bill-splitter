@@ -48,6 +48,12 @@ export const createHome = async (name: string): Promise<Home> => {
   return response.data
 }
 
+// Get all homes
+export const getHomes = async (): Promise<{ homes: Home[] }> => {
+  const response = await api.get<{ homes: Home[] }>('/api/homes')
+  return response.data
+}
+
 // Get an existing home
 export const getHome = async (homeId: string): Promise<Home> => {
   const response = await api.get<Home>(`/api/homes/${homeId}`)

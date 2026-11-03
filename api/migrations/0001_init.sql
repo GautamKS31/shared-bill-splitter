@@ -1,7 +1,5 @@
 
--- ==========================================
 -- 1. HOMES TABLE
--- ==========================================
 
 CREATE TABLE homes (
     id TEXT PRIMARY KEY NOT NULL,
@@ -13,9 +11,7 @@ CREATE TABLE homes (
 );
 
 
--- ==========================================
 -- 2. MEMBERS TABLE
--- ==========================================
 
 CREATE TABLE members (
     id TEXT PRIMARY KEY NOT NULL,
@@ -42,10 +38,7 @@ CREATE TABLE members (
         UNIQUE (id, home_id)
 );
 
-
--- ==========================================
 -- 3. BILLS TABLE
--- ==========================================
 
 CREATE TABLE bills (
     id TEXT PRIMARY KEY NOT NULL,
@@ -73,9 +66,7 @@ CREATE TABLE bills (
 );
 
 
--- ==========================================
 -- 4. SHARES TABLE
--- ==========================================
 
 CREATE TABLE shares (
     id TEXT PRIMARY KEY NOT NULL,
@@ -113,10 +104,7 @@ CREATE TABLE shares (
         )
 );
 
-
--- ==========================================
 -- 5. INDEXES
--- ==========================================
 
 CREATE INDEX idx_bills_home
 ON bills(home_id);

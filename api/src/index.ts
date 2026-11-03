@@ -7,23 +7,22 @@ import paymentRoutes from './routes/payments'
 
 const app = new Hono<{ Bindings: Env }>()
 
-// Allow requests from the React frontend
 app.use(
-  "*",
+  '*',
   cors({
     origin: (origin) => {
-      if (!origin) return null;
+      if (!origin) return null
 
       const isLocalDevelopment =
         /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
-        /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin);
+        /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)
 
-      return isLocalDevelopment ? origin : null;
+      return isLocalDevelopment ? origin : null
     },
-    allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Idempotency-Key"],
+    allowMethods: ['GET', 'POST', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Idempotency-Key'],
   }),
-);
+)
 
 // Health check
 app.get('/api/health', (c) => {

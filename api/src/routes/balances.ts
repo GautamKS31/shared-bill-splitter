@@ -8,7 +8,6 @@ type BalanceRow = {
   outstanding_cents: number
 }
 
-// GET /api/homes/:homeId/balances
 // Calculate the outstanding amount for every member.
 
 balances.get('/api/homes/:homeId/balances', async (c) => {
