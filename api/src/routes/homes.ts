@@ -7,8 +7,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 const homes = new Hono<{ Bindings: Env }>()
 
-// POST /api/homes
-// Create a new home
 homes.post('/api/homes', async (c) => {
   const body: unknown = await c.req.json<unknown>().catch(() => null)
 
@@ -24,8 +22,7 @@ homes.post('/api/homes', async (c) => {
   return c.json({ id, name }, 201)
 })
 
-// GET /api/homes
-// Retrieve all homes
+
 homes.get('/api/homes', async (c) => {
   const result = await c.env.DB.prepare(
     `SELECT id, name
@@ -36,8 +33,6 @@ homes.get('/api/homes', async (c) => {
   return c.json({ homes: result.results }, 200)
 })
 
-// GET /api/homes/:homeId
-// Retrieve one home
 homes.get('/api/homes/:homeId', async (c) => {
   const homeId = c.req.param('homeId')
 
@@ -52,8 +47,6 @@ homes.get('/api/homes/:homeId', async (c) => {
   return c.json(home, 200)
 })
 
-// POST /api/homes/:homeId/members
-// Add a member to a home, preventing duplicate names
 homes.post('/api/homes/:homeId/members', async (c) => {
   const homeId = c.req.param('homeId')
   const body: unknown = await c.req.json<unknown>().catch(() => null)
@@ -64,7 +57,6 @@ homes.post('/api/homes/:homeId/members', async (c) => {
 
   const name = body.name.trim()
 
-  // Check whether the home exists.
   const home = await c.env.DB.prepare('SELECT id FROM homes WHERE id = ?')
     .bind(homeId)
     .first<{ id: string }>()
@@ -73,7 +65,7 @@ homes.post('/api/homes/:homeId/members', async (c) => {
     return c.json({ error: 'Home not found' }, 404)
   }
 
-  // Check duplicates without considering letter case or surrounding spaces.
+
   const existingMember = await c.env.DB.prepare(
     `SELECT id
      FROM members
@@ -109,8 +101,7 @@ homes.post('/api/homes/:homeId/members', async (c) => {
 
     return c.json({ id, homeId, name }, 201)
   } catch (error) {
-    // The unique database index also protects against simultaneous requests.
-    // Check again to distinguish a duplicate from another database error.
+
     const duplicate = await c.env.DB.prepare(
       `SELECT id
        FROM members
@@ -129,8 +120,6 @@ homes.post('/api/homes/:homeId/members', async (c) => {
   }
 })
 
-// GET /api/homes/:homeId/members
-// Retrieve members in joining order
 homes.get('/api/homes/:homeId/members', async (c) => {
   const homeId = c.req.param('homeId')
 

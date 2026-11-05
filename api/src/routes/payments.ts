@@ -16,14 +16,13 @@ payments.post('/api/bills/:billId/shares/:shareId/pay', async (c) => {
   const billId = c.req.param('billId')
   const shareId = c.req.param('shareId')
 
-  // 1. Validate Idempotency-Key.
+//4 Payment req twice
   const idempotencyKey = c.req.header('Idempotency-Key')?.trim()
 
   if (!idempotencyKey) {
     return c.json({ error: 'Idempotency-Key header is required' }, 400)
   }
-
-  // 2. Check whether the bill exists.
+// 6 Bill Not found
   const bill = await c.env.DB.prepare('SELECT id FROM bills WHERE id = ?')
     .bind(billId)
     .first<{ id: string }>()
@@ -32,7 +31,7 @@ payments.post('/api/bills/:billId/shares/:shareId/pay', async (c) => {
     return c.json({ error: 'Bill not found' }, 404)
   }
 
-  // 3. Find the share belonging to this bill.
+
   const share = await c.env.DB.prepare(
     `SELECT id, member_id, amount_cents, paid_at, idempotency_key
        FROM shares
@@ -45,7 +44,7 @@ payments.post('/api/bills/:billId/shares/:shareId/pay', async (c) => {
     return c.json({ error: 'Share not found' }, 404)
   }
 
-  // 4. Handle an already-paid share.
+//4 Payment req twice
   if (share.paid_at !== null) {
     if (share.idempotency_key === idempotencyKey) {
       return c.json(
@@ -61,8 +60,7 @@ payments.post('/api/bills/:billId/shares/:shareId/pay', async (c) => {
 
     return c.json({ error: 'Share has already been paid' }, 409)
   }
-
-  // 5. Generate payment timestamp.
+// 5 Two payment req at the same time
   const paidAt = new Date().toISOString()
 
   // 6. Update only if the share is still unpaid.
@@ -88,7 +86,6 @@ payments.post('/api/bills/:billId/shares/:shareId/pay', async (c) => {
     )
   }
 
-  // 7. Another request may have paid the share first.
   const latestShare = await c.env.DB.prepare(
     `SELECT id, member_id, amount_cents, paid_at, idempotency_key
        FROM shares

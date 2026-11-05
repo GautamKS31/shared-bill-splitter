@@ -7,15 +7,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 const bills = new Hono<{ Bindings: Env }>()
 
-// ==========================================
-// POST /api/homes/:homeId/bills
 // Create a bill and split it among members
-// ==========================================
 
 bills.post('/api/homes/:homeId/bills', async (c) => {
   const homeId = c.req.param('homeId')
 
-  // 1. Check whether the home exists.
+
   const home = await c.env.DB.prepare('SELECT id FROM homes WHERE id = ?')
     .bind(homeId)
     .first<{ id: string }>()
@@ -23,8 +20,7 @@ bills.post('/api/homes/:homeId/bills', async (c) => {
   if (!home) {
     return c.json({ error: 'Home not found' }, 404)
   }
-
-  // 2. Read and validate the request body.
+//2 Zero, negative or invalid amount
   const body: unknown = await c.req.json<unknown>().catch(() => null)
 
   if (
@@ -46,7 +42,7 @@ bills.post('/api/homes/:homeId/bills', async (c) => {
   const title = body.title.trim()
   const totalCents = body.totalCents
 
-  // 3. Get all members in joining order.
+  // 1 Home with no members
   const memberResult = await c.env.DB.prepare(
     `SELECT id
      FROM members
@@ -58,7 +54,6 @@ bills.post('/api/homes/:homeId/bills', async (c) => {
 
   const members = memberResult.results
 
-  // 4. A bill cannot be created without members.
   if (members.length === 0) {
     return c.json(
       {
@@ -67,8 +62,7 @@ bills.post('/api/homes/:homeId/bills', async (c) => {
       422,
     )
   }
-
-  // 5. Calculate each member's share.
+// 3 Divided Evenly
   const memberCount = members.length
 
   const baseShare = Math.floor(totalCents / memberCount)
@@ -83,7 +77,6 @@ bills.post('/api/homes/:homeId/bills', async (c) => {
     paidAt: null,
   }))
 
-  // 6. Prepare the bill insertion.
   const statements = [
     c.env.DB.prepare(
       `INSERT INTO bills (id, home_id, title, total_cents)
@@ -100,10 +93,7 @@ bills.post('/api/homes/:homeId/bills', async (c) => {
     ),
   ]
 
-  // 8. Execute all insertions atomically.
   await c.env.DB.batch(statements)
-
-  // 9. Return the created bill and shares.
   return c.json(
     {
       id: billId,
@@ -116,10 +106,8 @@ bills.post('/api/homes/:homeId/bills', async (c) => {
   )
 })
 
-// ==========================================
-// GET /api/homes/:homeId/bills
+
 // Retrieve all bills and their shares
-// ==========================================
 
 bills.get('/api/homes/:homeId/bills', async (c) => {
   const homeId = c.req.param('homeId')
@@ -180,5 +168,5 @@ bills.get('/api/homes/:homeId/bills', async (c) => {
   return c.json({ bills: billsWithShares }, 200)
 })
 
-// Export the bills routes
+
 export default bills
